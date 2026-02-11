@@ -1,142 +1,314 @@
 import streamlit as st
 import time
-import random
+from PIL import Image, ImageOps
 
 # ================= CUSTOMIZE =================
 APP_TITLE = "💘 Valentines Bot"
 HIS_NAME = "Gordito"
 YOUR_NAME = "Violeta"
-PASSWORD = "020625"                 # anniversary DDMMYY
-REVEAL_IMAGE_PATH = "reveal.jpg"    # put this file next to app.py
+PASSWORD = "020625"
+
+GIF_Q1 = "hug.gif"
+GIF_Q2 = "kiss.gif"
+GIF_Q3 = "hug_jump.gif"
+GIF_FINAL_EXTRA = "moti-hearts.gif"
 
 TEASE_MESSAGES = [
-    "😈 Mmmm sospechoso...",
+    "Mentira",
     "No acepto esa respuesta.",
     "Intentá otra vez Gordito 😌",
     "Dale… sabés cuál es.",
-    "Yo esperando el ‘Obvio’ como una reina 👑",
 ]
 
-TYPEWRITER_TEXT = f"Te amo, {HIS_NAME}. Te extraño. Volvé a mí 😌💘"
+TYPEWRITER_TEXT = f"Te amo, {HIS_NAME}. y Te extraño muuuuuuucho 😌💘"
+
+Q2_QUESTION = "Pregunta 2: What are you going to have when you come back? 😌"
+Q2_OPTIONS = [
+    "Muchos mimitos",
+    "Muchos abrazos 🫂",
+    "Un monton de besosssss",
+    "Todas las anteriores 💘",
+]
+Q2_CORRECT = "Todas las anteriores 💘"
+
+TARGET_KISSES = 20
+TARGET_HUGS = 20
+
+PHOTOS = [
+    "Image_1.jpeg",
+    "Image_2.jpeg",
+    "Image_3.jpeg",
+    "Image_4.jpeg",
+    "Image_5.jpeg",
+    "Image_6.jpeg",
+    "Image_7.jpeg",
+]
 # ============================================
 
 st.set_page_config(page_title=APP_TITLE, page_icon="💘", layout="centered")
 
-# --- Password gate ---
-def password_gate():
-    if "ok" not in st.session_state:
-        st.session_state.ok = False
+# ---- Romantic Tablet + Album CSS ----
+st.markdown(
+"""
+<style>
+.block-container {max-width: 900px;}
 
-    if not st.session_state.ok:
-        st.title("🔒 Link secreto")
-        st.write("Esto es solo para vos 💘")
-        st.caption("Pista: nuestro aniversario 📅")
-        st.caption("Formato: DDMMYY 😉")
+button {
+    font-size:26px !important;
+    padding:1rem 1.4rem !important;
+    border-radius:18px !important;
+    transition: all 0.2s ease;
+}
 
-        pw = st.text_input("Contraseña", type="password")
-        if st.button("Entrar"):
-            if pw == PASSWORD:
-                st.session_state.ok = True
-                st.rerun()
-            else:
-                st.error("Nope 😈 probá otra vez")
-        st.stop()
+button[kind="primary"] {
+    background-color:#ff4b91 !important;
+    color:white !important;
+    border:none !important;
+}
 
-password_gate()
+button[kind="primary"]:hover {
+    background-color:#ff6aa8 !important;
+    transform:scale(1.03);
+}
 
-# --- State ---
+p, li {font-size:22px;}
+
+.final-card {
+  background: rgba(255, 75, 145, 0.08);
+  border: 1px solid rgba(255, 75, 145, 0.22);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.big-title {
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.album-wrap {
+  display:flex;
+  justify-content:center;
+}
+
+.album-card {
+  width: min(860px, 100%);
+  border-radius: 22px;
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+}
+
+.album-caption {
+  text-align:center;
+  opacity:0.85;
+  margin-top:8px;
+}
+</style>
+""",
+unsafe_allow_html=True
+)
+
+# ---- Helpers ----
+def smooth_transition(message="Loading… 💘", seconds=2.0):
+    st.info(message)
+    bar = st.progress(0)
+    steps = 40
+    for i in range(steps + 1):
+        bar.progress(i / steps)
+        time.sleep(seconds / steps)
+
+def burst_te_amo_once():
+    for _ in range(10):
+        st.toast("Te amo 💘")
+        time.sleep(0.10)
+
+def show_album_photo(path: str, caption: str = ""):
+    """Uniform romantic album photo display"""
+    try:
+        img = Image.open(path)
+        img = ImageOps.exif_transpose(img)
+
+        # ⭐ SAME HEIGHT FOR ALL PHOTOS
+        target_h = 700
+        ratio = target_h / float(img.height)
+        new_w = int(img.width * ratio)
+        img = img.resize((new_w, target_h))
+
+        st.markdown("<div class='album-wrap'><div class='album-card'>", unsafe_allow_html=True)
+        st.image(img, use_container_width=True)
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+        if caption:
+            st.markdown(f"<div class='album-caption'>{caption}</div>", unsafe_allow_html=True)
+
+    except:
+        st.warning(f"Could not open: {path}")
+
+# ---- State ----
+if "ok" not in st.session_state:
+    st.session_state.ok = False
+if "step" not in st.session_state:
+    st.session_state.step = 0
 if "no_clicks" not in st.session_state:
     st.session_state.no_clicks = 0
-if "solved" not in st.session_state:
-    st.session_state.solved = False
-if "hearts" not in st.session_state:
-    st.session_state.hearts = 0
-if "did_reveal_fx" not in st.session_state:
-    st.session_state.did_reveal_fx = False
+if "kisses" not in st.session_state:
+    st.session_state.kisses = 0
+if "hugs" not in st.session_state:
+    st.session_state.hugs = 0
+if "photo_idx" not in st.session_state:
+    st.session_state.photo_idx = 0
+if "finale_played" not in st.session_state:
+    st.session_state.finale_played = False
 
-# --- UI ---
-st.title(APP_TITLE)
-st.caption(f"Para **{HIS_NAME}** — de **{YOUR_NAME}** 💌")
+# ---- PASSWORD ----
+def password_screen():
+    st.title("🔒 Secret Link")
+    st.write("This is just for you 💘")
+    st.caption("Hint: our anniversary 📅 (DDMMYY)")
+    pw = st.text_input("Password", type="password")
 
-# Growing hearts (always visible)
-st.subheader("❤️ Amor acumulado")
-colh1, colh2 = st.columns([1, 3])
-with colh1:
-    if st.button("❤️ +1"):
-        st.session_state.hearts += 1
-with colh2:
-    st.write(" ".join(["❤️"] * min(st.session_state.hearts, 30)))
-    if st.session_state.hearts > 30:
-        st.caption(f"(Ok, ya entendí 😌) Total: {st.session_state.hearts}")
+    if st.button("Entrar 💘", type="primary"):
+        if pw == PASSWORD:
+            st.session_state.ok = True
+            st.session_state.step = 1
+            st.rerun()
+        else:
+            st.error("Nope 😈")
 
-st.divider()
+# ---- QUESTION 1 ----
+def question_1():
+    st.title(APP_TITLE)
+    st.write("Do you miss me? 😌")
 
-# Main question
-st.subheader("Pregunta importante 😌")
-st.write("¿Me amás?")
+    c1, c2 = st.columns(2)
 
-col1, col2 = st.columns(2)
+    with c1:
+        if st.button("No 😈"):
+            st.session_state.no_clicks += 1
 
-with col1:
-    if st.button("No 😈"):
-        st.session_state.no_clicks += 1
-        # a cheeky toast every time he says no
-        st.toast("Incorrecto 😈", icon="😈")
+    with c2:
+        if st.button("Obvio 💘", type="primary"):
+            st.balloons()
+            smooth_transition("Ok… next question 😌💘",2)
+            st.session_state.step = 2
+            st.rerun()
 
-with col2:
-    if st.button("Obvio 💘"):
-        st.session_state.solved = True
-        st.rerun()
+    if st.session_state.no_clicks>0:
+        msg = TEASE_MESSAGES[(st.session_state.no_clicks-1)%len(TEASE_MESSAGES)]
+        st.warning(msg)
 
-# Teasing logic
-if st.session_state.no_clicks > 0 and not st.session_state.solved:
-    msg = TEASE_MESSAGES[(st.session_state.no_clicks - 1) % len(TEASE_MESSAGES)]
-    st.warning(msg)
+    try:
+        st.image(GIF_Q1, use_container_width=True)
+    except:
+        pass
 
-# --- Reveal section ---
-if st.session_state.solved:
-    st.success("Sabía 😌")
+# ---- QUESTION 2 ----
+def question_2():
+    st.title("🧩 Mini quiz")
+    choice = st.radio(Q2_QUESTION, Q2_OPTIONS)
 
-    # Effects (run once)
-    if not st.session_state.did_reveal_fx:
-        st.session_state.did_reveal_fx = True
+    if st.button("Confirm 😌", type="primary"):
+        if choice == Q2_CORRECT:
+            st.balloons()
+            burst_te_amo_once()
+            smooth_transition("Ok… one more thing 😈💘",2)
+            st.session_state.step = 3
+            st.rerun()
+        else:
+            st.error("Mmm no 😈")
 
-        # Big celebration
-        st.balloons()
-        st.snow()  # looks like cute falling confetti
+    try:
+        st.image(GIF_Q2, use_container_width=True)
+    except:
+        pass
 
-        # "Floating Te amos" (multiple toasts)
-        for _ in range(8):
-            st.toast("Te amo 💘", icon="💘")
-            time.sleep(0.08)
+# ---- CLICK SECTION ----
+def clicks_section():
+    st.title("💋🫂 Final challenge")
+    st.write("if you want to see the final surprise, give me MANY kisses and hugs 😌💘")
 
-    # Typewriter text
-    st.subheader("💌 Mensaje")
+    c1,c2 = st.columns(2)
+
+    with c1:
+        if st.button("💋 Kiss +1", type="primary"):
+            st.session_state.kisses +=1
+
+    with c2:
+        if st.button("🫂 Hug +1", type="primary"):
+            st.session_state.hugs +=1
+
+    st.write(f"💋 {st.session_state.kisses}/{TARGET_KISSES}")
+    st.progress(min(st.session_state.kisses/TARGET_KISSES,1.0))
+
+    st.write(f"🫂 {st.session_state.hugs}/{TARGET_HUGS}")
+    st.progress(min(st.session_state.hugs/TARGET_HUGS,1.0))
+
+    ready = st.session_state.kisses>=TARGET_KISSES and st.session_state.hugs>=TARGET_HUGS
+
+    if ready:
+        if st.button("🎁 Reveal final surprise", type="primary"):
+            st.balloons()
+            smooth_transition("Opening… 💘",2)
+            st.session_state.step=4
+            st.rerun()
+
+    try:
+        st.image(GIF_Q3, use_container_width=True)
+    except:
+        pass
+
+# ---- FINAL ----
+def final_surprise():
+    st.markdown("<div class='big-title'>Happy Valentines day 💖</div>",unsafe_allow_html=True)
+
+    st.markdown("<div class='final-card'>",unsafe_allow_html=True)
     placeholder = st.empty()
     for i in range(len(TYPEWRITER_TEXT)):
         placeholder.markdown(f"### {TYPEWRITER_TEXT[:i+1]}")
         time.sleep(0.03)
-
     st.markdown(f"— **{YOUR_NAME}**")
-
-    # Reveal image
-    st.divider()
-    st.subheader("📸 Sorpresa")
-    try:
-        st.image(REVEAL_IMAGE_PATH, use_container_width=True)
-    except Exception:
-        st.warning(
-            f"No encontré '{REVEAL_IMAGE_PATH}'. "
-            "Poné una foto en la carpeta y renombrala a reveal.jpg"
-        )
+    st.markdown("</div>",unsafe_allow_html=True)
 
     st.divider()
-    st.caption("Ahora mandame un audio diciendo ‘yo también’ 😏")
+    st.subheader("📸 Our moments")
 
-    # Reset button for testing
-    if st.button("🔄 Reiniciar (testing)"):
-        st.session_state.no_clicks = 0
-        st.session_state.solved = False
-        st.session_state.did_reveal_fx = False
-        st.session_state.hearts = 0
-        st.rerun()
+    idx = max(0,min(st.session_state.photo_idx,len(PHOTOS)-1))
+    st.session_state.photo_idx = idx
+    show_album_photo(PHOTOS[idx], caption=f"{idx+1}/{len(PHOTOS)}")
+
+    a,b,c = st.columns(3)
+
+    with a:
+        if st.button("⬅️ Prev"):
+            st.session_state.photo_idx -=1
+            st.rerun()
+    with b:
+        if st.button("➡️ Next", type="primary"):
+            st.session_state.photo_idx +=1
+            st.rerun()
+    with c:
+        if st.button("🔁 Start"):
+            st.session_state.photo_idx=0
+            st.session_state.finale_played=False
+            st.rerun()
+
+    if st.session_state.photo_idx == len(PHOTOS)-1 and not st.session_state.finale_played:
+        st.session_state.finale_played=True
+        smooth_transition("One last thing… 😌💘",2)
+        st.balloons()
+        try:
+            st.image(GIF_FINAL_EXTRA, use_container_width=True)
+        except:
+            pass
+
+# ---- ROUTER ----
+if not st.session_state.ok:
+    password_screen()
+else:
+    if st.session_state.step==1:
+        question_1()
+    elif st.session_state.step==2:
+        question_2()
+    elif st.session_state.step==3:
+        clicks_section()
+    else:
+        final_surprise()
