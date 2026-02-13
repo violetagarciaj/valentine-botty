@@ -47,87 +47,40 @@ PHOTOS = [
 
 st.set_page_config(page_title=APP_TITLE, page_icon="💘", layout="centered")
 
-# ---- Romantic Tablet + Album CSS ----
-st.markdown(
-"""
+# ---- Romantic CSS ----
+st.markdown("""
 <style>
 .block-container {max-width: 900px;}
-
-button {
-    font-size:26px !important;
-    padding:1rem 1.4rem !important;
-    border-radius:18px !important;
-    transition: all 0.2s ease;
-}
-
-button[kind="primary"] {
-    background-color:#ff4b91 !important;
-    color:white !important;
-    border:none !important;
-}
-
-button[kind="primary"]:hover {
-    background-color:#ff6aa8 !important;
-    transform:scale(1.03);
-}
-
+button {font-size:26px !important;padding:1rem 1.4rem !important;border-radius:18px !important;}
+button[kind="primary"] {background-color:#ff4b91 !important;color:white !important;border:none !important;}
+button[kind="primary"]:hover {background-color:#ff6aa8 !important;transform:scale(1.03);}
 p, li {font-size:22px;}
-
-.final-card {
-  background: rgba(255, 75, 145, 0.08);
-  border: 1px solid rgba(255, 75, 145, 0.22);
-  border-radius: 18px;
-  padding: 18px;
-}
-
-.big-title {
-  font-size: 34px;
-  font-weight: 700;
-}
-
-.album-wrap {
-  display:flex;
-  justify-content:center;
-}
-
-.album-card {
-  width: min(860px, 100%);
-  border-radius: 22px;
-  padding: 14px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.10);
-}
-
-.album-caption {
-  text-align:center;
-  opacity:0.85;
-  margin-top:8px;
-}
+.final-card {background: rgba(255,75,145,0.08);border-radius:18px;padding:18px;}
+.big-title {font-size:34px;font-weight:700;}
+.album-wrap {display:flex;justify-content:center;}
+.album-card {width:min(860px,100%);border-radius:22px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.10);}
+.album-caption {text-align:center;opacity:0.85;margin-top:8px;}
 </style>
-""",
-unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 # ---- Helpers ----
 def smooth_transition(message="Loading… 💘", seconds=2.0):
     st.info(message)
     bar = st.progress(0)
-    steps = 40
-    for i in range(steps + 1):
-        bar.progress(i / steps)
-        time.sleep(seconds / steps)
+    for i in range(41):
+        bar.progress(i / 40)
+        time.sleep(seconds / 40)
 
 def burst_te_amo_once():
-    for _ in range(10):
+    for _ in range(3):
         st.toast("Te amo 💘")
-        time.sleep(0.10)
+        time.sleep(0.2)
 
-def show_album_photo(path: str, caption: str = ""):
-    """Uniform romantic album photo display"""
+def show_album_photo(path, caption=""):
     try:
         img = Image.open(path)
         img = ImageOps.exif_transpose(img)
 
-        # ⭐ SAME HEIGHT FOR ALL PHOTOS
         target_h = 700
         ratio = target_h / float(img.height)
         new_w = int(img.width * ratio)
@@ -139,30 +92,20 @@ def show_album_photo(path: str, caption: str = ""):
 
         if caption:
             st.markdown(f"<div class='album-caption'>{caption}</div>", unsafe_allow_html=True)
-
     except:
         st.warning(f"Could not open: {path}")
 
 # ---- State ----
-if "ok" not in st.session_state:
-    st.session_state.ok = False
-if "step" not in st.session_state:
-    st.session_state.step = 0
-if "no_clicks" not in st.session_state:
-    st.session_state.no_clicks = 0
-if "kisses" not in st.session_state:
-    st.session_state.kisses = 0
-if "hugs" not in st.session_state:
-    st.session_state.hugs = 0
-if "photo_idx" not in st.session_state:
-    st.session_state.photo_idx = 0
-if "finale_played" not in st.session_state:
-    st.session_state.finale_played = False
+if "ok" not in st.session_state: st.session_state.ok = False
+if "step" not in st.session_state: st.session_state.step = 0  # 0 pass, 1 q1, 2 q2, 3 clicks, 5 album, 6 ending
+if "no_clicks" not in st.session_state: st.session_state.no_clicks = 0
+if "kisses" not in st.session_state: st.session_state.kisses = 0
+if "hugs" not in st.session_state: st.session_state.hugs = 0
+if "photo_idx" not in st.session_state: st.session_state.photo_idx = 0
 
 # ---- PASSWORD ----
 def password_screen():
     st.title("🔒 Secret Link")
-    st.write("This is just for you 💘")
     st.caption("Hint: our anniversary 📅 (DDMMYY)")
     pw = st.text_input("Password", type="password")
 
@@ -180,20 +123,18 @@ def question_1():
     st.write("Do you miss me? 😌")
 
     c1, c2 = st.columns(2)
-
     with c1:
         if st.button("No 😈"):
             st.session_state.no_clicks += 1
-
     with c2:
         if st.button("Obvio 💘", type="primary"):
             st.balloons()
-            smooth_transition("Ok… next question 😌💘",2)
+            smooth_transition("Ok… next question 😌💘", 2)
             st.session_state.step = 2
             st.rerun()
 
-    if st.session_state.no_clicks>0:
-        msg = TEASE_MESSAGES[(st.session_state.no_clicks-1)%len(TEASE_MESSAGES)]
+    if st.session_state.no_clicks > 0:
+        msg = TEASE_MESSAGES[(st.session_state.no_clicks - 1) % len(TEASE_MESSAGES)]
         st.warning(msg)
 
     try:
@@ -210,7 +151,7 @@ def question_2():
         if choice == Q2_CORRECT:
             st.balloons()
             burst_te_amo_once()
-            smooth_transition("Ok… one more thing 😈💘",2)
+            smooth_transition("Ok… one more thing 😈💘", 2)
             st.session_state.step = 3
             st.rerun()
         else:
@@ -226,29 +167,22 @@ def clicks_section():
     st.title("💋🫂 Final challenge")
     st.write("if you want to see the final surprise, give me MANY kisses and hugs 😌💘")
 
-    c1,c2 = st.columns(2)
-
+    c1, c2 = st.columns(2)
     with c1:
         if st.button("💋 Kiss +1", type="primary"):
-            st.session_state.kisses +=1
-
+            st.session_state.kisses += 1
     with c2:
         if st.button("🫂 Hug +1", type="primary"):
-            st.session_state.hugs +=1
+            st.session_state.hugs += 1
 
-    st.write(f"💋 {st.session_state.kisses}/{TARGET_KISSES}")
-    st.progress(min(st.session_state.kisses/TARGET_KISSES,1.0))
+    st.progress(min(st.session_state.kisses / TARGET_KISSES, 1.0))
+    st.progress(min(st.session_state.hugs / TARGET_HUGS, 1.0))
 
-    st.write(f"🫂 {st.session_state.hugs}/{TARGET_HUGS}")
-    st.progress(min(st.session_state.hugs/TARGET_HUGS,1.0))
-
-    ready = st.session_state.kisses>=TARGET_KISSES and st.session_state.hugs>=TARGET_HUGS
-
-    if ready:
-        if st.button("🎁 Reveal final surprise", type="primary"):
+    if st.session_state.kisses >= TARGET_KISSES and st.session_state.hugs >= TARGET_HUGS:
+        if st.button("🎁 Reveal", type="primary"):
             st.balloons()
-            smooth_transition("Opening… 💘",2)
-            st.session_state.step=4
+            smooth_transition("Opening… 💘", 2)
+            st.session_state.step = 5
             st.rerun()
 
     try:
@@ -256,59 +190,68 @@ def clicks_section():
     except:
         pass
 
-# ---- FINAL ----
-def final_surprise():
-    st.markdown("<div class='big-title'>Happy Valentines day 💖</div>",unsafe_allow_html=True)
+# ---- ALBUM PAGE (PHOTOS ONLY) ----
+def album_page():
+    st.subheader("📸 Our moments")
 
-    st.markdown("<div class='final-card'>",unsafe_allow_html=True)
+    idx = max(0, min(st.session_state.photo_idx, len(PHOTOS) - 1))
+    st.session_state.photo_idx = idx
+
+    show_album_photo(PHOTOS[idx], caption=f"{idx + 1}/{len(PHOTOS)}")
+
+    a, b, c = st.columns(3)
+    with a:
+        if st.button("⬅️ Prev"):
+            st.session_state.photo_idx = max(0, st.session_state.photo_idx - 1)
+            st.rerun()
+    with b:
+        if st.button("➡️ Next", type="primary"):
+            st.session_state.photo_idx = min(len(PHOTOS) - 1, st.session_state.photo_idx + 1)
+            st.rerun()
+    with c:
+        if st.button("🔁 Start"):
+            st.session_state.photo_idx = 0
+            st.rerun()
+
+    # On last photo, show button to go to ending page
+    if st.session_state.photo_idx == len(PHOTOS) - 1:
+        st.divider()
+        if st.button("💘 Final Message", type="primary"):
+            smooth_transition("Last page… 😌💘", 2)
+            st.session_state.step = 6
+            st.rerun()
+
+# ---- ENDING PAGE (MESSAGE + GIF) ----
+def ending_page():
+    st.markdown("<div class='big-title'>Happy Valentines day 💖</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='final-card'>", unsafe_allow_html=True)
+
     placeholder = st.empty()
     for i in range(len(TYPEWRITER_TEXT)):
         placeholder.markdown(f"### {TYPEWRITER_TEXT[:i+1]}")
         time.sleep(0.03)
+
     st.markdown(f"— **{YOUR_NAME}**")
-    st.markdown("</div>",unsafe_allow_html=True)
 
-    st.divider()
-    st.subheader("📸 Our moments")
+    try:
+        st.image(GIF_FINAL_EXTRA, use_container_width=True)
+    except:
+        st.info("Missing moti-hearts.gif")
 
-    idx = max(0,min(st.session_state.photo_idx,len(PHOTOS)-1))
-    st.session_state.photo_idx = idx
-    show_album_photo(PHOTOS[idx], caption=f"{idx+1}/{len(PHOTOS)}")
-
-    a,b,c = st.columns(3)
-
-    with a:
-        if st.button("⬅️ Prev"):
-            st.session_state.photo_idx -=1
-            st.rerun()
-    with b:
-        if st.button("➡️ Next", type="primary"):
-            st.session_state.photo_idx +=1
-            st.rerun()
-    with c:
-        if st.button("🔁 Start"):
-            st.session_state.photo_idx=0
-            st.session_state.finale_played=False
-            st.rerun()
-
-    if st.session_state.photo_idx == len(PHOTOS)-1 and not st.session_state.finale_played:
-        st.session_state.finale_played=True
-        smooth_transition("One last thing… 😌💘",2)
-        st.balloons()
-        try:
-            st.image(GIF_FINAL_EXTRA, use_container_width=True)
-        except:
-            pass
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ---- ROUTER ----
 if not st.session_state.ok:
     password_screen()
 else:
-    if st.session_state.step==1:
+    if st.session_state.step == 1:
         question_1()
-    elif st.session_state.step==2:
+    elif st.session_state.step == 2:
         question_2()
-    elif st.session_state.step==3:
+    elif st.session_state.step == 3:
         clicks_section()
+    elif st.session_state.step == 6:
+        ending_page()
     else:
-        final_surprise()
+        album_page()
